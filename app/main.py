@@ -1,16 +1,21 @@
 from fastapi import FastAPI, HTTPException, Request, Response, Cookie, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy import Column, Integer, String, Text, DateTime
 from sqlalchemy.sql import func
 from sqlalchemy.orm import sessionmaker, Session
 from database import Base, engine, SessionLocal  # 引入抽离的数据库模块
 import uuid
+import os
 from deepseek_utils import run_deepseek
 
 # 初始化 FastAPI 应用
 app = FastAPI()
+
+# 挂载静态文件目录
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # 添加 CORS 中间件
 app.add_middleware(
@@ -71,6 +76,17 @@ async def add_session_id(request: Request, call_next):
 
     return response
 
+
+# 托管 index.html
+@app.get("/", response_class=HTMLResponse)
+async def index():
+    file_path = os.path.join(os.path.dirname(__file__), "static", "index.html")
+    print(f"Serving file from: {file_path}")  # 打印文件路径
+    with open(file_path, "r", encoding="utf-8") as file:
+        html_content = file.read()
+    return HTMLResponse(content=html_content)
+    # return "index.html"
+
 # 获取数据库会话
 def get_db():
     db = SessionLocal()
@@ -106,3 +122,19 @@ async def convert_code(request: CodeConversionRequest, db: Session = Depends(get
         return CodeConversionResponse(data=converted_code)
     except Exception as e:
         raise HTTPException(status_code=500, data=f"代码转换失败：{str(e)}")
+
+# Pydantic 模型
+class CodeConversionDTO(BaseModel):
+    id: int
+    input_code: str
+    target_language: str
+    output_code: str
+
+    class Config:
+        from_attributes = True
+
+@app.get("/api/records", response_model=list[CodeConversionDTO])
+async def get_records(db: Session = Depends(get_db)):
+    # 查询所有数据
+    data = db.query(CodeConversion).all()
+    return data
