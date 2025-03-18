@@ -118,12 +118,13 @@
 
             try {
                 // 模拟后端接口请求
-                const response = await fetch('/api/convert', {
+                const response = await fetch('http://127.0.0.1:8000/api/convert', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({ code, language }),
+                    credentials: 'include', // 允许发送 Cookie
                 });
 
                 const result = await response.json();
