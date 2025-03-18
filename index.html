@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeTrans-代码转换工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 400px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        textarea, select, button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        textarea {
+            resize: vertical;
+            height: 100px;
+        }
+        textarea.error {
+            border-color: red;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .output {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 50px;
+            white-space: pre-wrap;
+        }
+        .output.error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>代码转换工具</h1>
+        <div class="form-group">
+            <label for="codeInput">输入代码</label>
+            <textarea id="codeInput" placeholder="请输入代码"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="languageSelect">选择目标语言</label>
+            <select id="languageSelect">
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="java">Java</option>
+                <option value="csharp">C#</option>
+                <option value="cpp">C++</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <button id="submitButton">转换</button>
+        </div>
+        <div class="output" id="outputArea"></div>
+    </div>
+
+    <script>
+        document.getElementById('submitButton').addEventListener('click', async () => {
+            const codeInput = document.getElementById('codeInput');
+            const languageSelect = document.getElementById('languageSelect');
+            const outputArea = document.getElementById('outputArea');
+
+            // 获取输入值和选中的语言
+            const code = codeInput.value.trim();
+            const language = languageSelect.value;
+
+            // 清除之前的状态
+            codeInput.classList.remove('error');
+            outputArea.classList.remove('error');
+            outputArea.textContent = '';
+
+            if (!code) {
+                codeInput.classList.add('error');
+                outputArea.classList.add('error');
+                outputArea.textContent = '输入代码不能为空！';
+                return;
+            }
+
+            try {
+                // 模拟后端接口请求
+                const response = await fetch('/api/convert', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ code, language }),
+                });
+
+                const result = await response.json();
+
+                if (response.status === 400) {
+                    codeInput.classList.add('error');
+                    outputArea.classList.add('error');
+                    outputArea.textContent = result.error || '输入参数有误！';
+                } else if (response.status === 200) {
+                    outputArea.textContent = result.data || '转换成功！';
+                } else {
+                    outputArea.classList.add('error');
+                    outputArea.textContent = '发生未知错误，请稍后再试！';
+                }
+            } catch (error) {
+                outputArea.classList.add('error');
+                outputArea.textContent = '请求失败，请检查网络连接！';
+            }
+        });
+    </script>
+</body>
+</html>
