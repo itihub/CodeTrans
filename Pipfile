@@ -11,6 +11,7 @@ pymysql = "*"
 deepseek = "*"
 requests = "*"
 openai = "*"
+python-dotenv = "*"
 
 [dev-packages]
 
