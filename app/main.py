@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 
 origins = [
-    "http://localhost:8001",
+    "http://localhost:8000",
 ]
 
 # 添加 CORS 中间件
