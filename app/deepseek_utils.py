@@ -8,10 +8,13 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-load_dotenv("../deepseek.env")
-api_key = os.environ.get("OPENAI_API_KEY")
-api_url = os.environ.get("OPENAI_API_URL")
-model = os.environ.get("MODEL")
+# 获取环境文件路径，优先从 ENV_FILE_PATH 环境变量中读取
+env_file_path = os.getenv("ENV_FILE_PATH", "../deepseek.env")
+
+load_dotenv(env_file_path)
+api_key = os.getenv("OPENAI_API_KEY")
+api_url = os.getenv("OPENAI_API_URL")
+model = os.getenv("MODEL")
 
 # 检查 API Key 是否存在
 if not api_key:
