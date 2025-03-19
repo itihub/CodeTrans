@@ -1,19 +1,27 @@
 from dotenv import load_dotenv
 from openai import OpenAI
+from jinja2 import Environment, FileSystemLoader
 import os
 import logging
 
+# 配置日志
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 load_dotenv("../deepseek.env")
-api_key= os.environ.get("OPENAI_API_KEY")
-api_url = "https://api.deepseek.com/v1"
+api_key = os.environ.get("OPENAI_API_KEY")
+api_url = os.environ.get("OPENAI_API_URL")
+model = os.environ.get("MODEL")
 
 # 检查 API Key 是否存在
 if not api_key:
     raise ValueError("未找到 OPENAI_API_KEY，请检查 .env 文件是否正确配置。")
 
-# 配置日志
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+
+# 配置 Jinja2 模板加载器
+template_loader = FileSystemLoader(searchpath="../templates")
+template_env = Environment(loader=template_loader)
+
 
 def run_deepseek(input_code: str, target_language: str) -> str:
     """
@@ -27,27 +35,9 @@ def run_deepseek(input_code: str, target_language: str) -> str:
         str: 转换后的代码。
     """
 
-    # 系统提示内容
-    system_content = f"""
-    你是一位严格的代码审查与转换专家。你的任务是：
-
-    1. **精确识别代码语言：** 准确判断用户输入的代码所使用的编程语言。
-        * **若无法识别：** 请回复“**无法识别输入的代码语言。**”并结束。
-    2. **执行极其严格的代码语法检查：** 对输入的代码进行**逐字逐句的细致分析**，包括但不限于：
-    * **括号匹配：** 确保所有括号（圆括号、方括号、花括号）都正确匹配。
-    * **引号匹配：** 确保所有引号（单引号、双引号）都正确匹配。
-    * **语法规则：** 严格按照该语言的语法规则进行检查，包括关键字、变量声明、语句结构等。
-    * **符号使用：** 检查所有符号（分号、逗号、冒号等）的使用是否正确。
-    3. **错误处理：**
-    * **若发现任何语法错误：** 立即指出错误的**具体位置（行号、字符位置）**，并给出**明确且详细**的修复建议，并回复“**代码存在语法错误，已停止转换。**”并结束。
-    * **若代码完全正确：** 立即将代码转换为 {target_language} 语言，并仅输出转换后的代码，**禁止输出任何解释性或说明性文字。**
-
-    请严格遵守以下规则：
-
-    仅输出代码：在代码格式正确的情况下，只输出转换后的代码，不包含任何其他文字。
-    严格审查：对代码的每一个细节进行严格审查，确保转换后的代码完全符合目标语言的规范。
-    准确转换：确保转换后的代码在逻辑上与原始代码完全等价。
-    """
+    # 加载并渲染系统提示模板
+    template = template_env.get_template("system_prompt.jinja2")
+    system_content = template.render(target_language=target_language)
 
     # 初始化 OpenAI 客户端
     client = OpenAI(
@@ -58,7 +48,7 @@ def run_deepseek(input_code: str, target_language: str) -> str:
     try:
          # 调用 API
         response = client.chat.completions.create(
-            model="deepseek-reasoner",
+            model=model,
             messages=[
                 {"role": "system", "content": system_content},
                 {"role": "user", "content": input_code},
