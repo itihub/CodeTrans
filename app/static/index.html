@@ -118,7 +118,7 @@
 
             try {
                 // 模拟后端接口请求
-                const response = await fetch('http://127.0.0.1:8000/api/convert', {
+                const response = await fetch('http://127.0.0.1:8001/api/convert', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -132,7 +132,7 @@
                 if (response.status === 400) {
                     codeInput.classList.add('error');
                     outputArea.classList.add('error');
-                    outputArea.textContent = result.error || '输入参数有误！';
+                    outputArea.textContent = result.detail || '输入参数有误！';
                 } else if (response.status === 200) {
                     outputArea.textContent = result.data || '转换成功！';
                 } else {

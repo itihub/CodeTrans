@@ -9,22 +9,32 @@ from sqlalchemy.orm import sessionmaker, Session
 from database import Base, engine, SessionLocal  # 引入抽离的数据库模块
 import uuid
 import os
+import logging
 from deepseek_utils import run_deepseek
+
+# 配置日志
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # 初始化 FastAPI 应用
 app = FastAPI()
 
-# 挂载静态文件目录
-app.mount("/static", StaticFiles(directory="static"), name="static")
+origins = [
+    "http://localhost:8001",
+]
 
 # 添加 CORS 中间件
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 允许所有来源（生产环境中建议指定具体的域名）
+    allow_origins=origins,  # 允许所有来源（生产环境中建议指定具体的域名）
     allow_credentials=True,  # 允许发送 Cookie
     allow_methods=["*"],  # 允许所有 HTTP 方法
     allow_headers=["*"],  # 允许所有请求头
 )
+
+# 挂载静态文件目录
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 # 数据库模型
 class CodeConversion(Base):
@@ -80,11 +90,12 @@ async def add_session_id(request: Request, call_next):
 # 托管 index.html
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    file_path = os.path.join(os.path.dirname(__file__), "static", "index.html")
-    print(f"Serving file from: {file_path}")  # 打印文件路径
-    with open(file_path, "r", encoding="utf-8") as file:
-        html_content = file.read()
-    return HTMLResponse(content=html_content)
+    # file_path = os.path.join(os.path.dirname(__file__), "static", "index.html")
+    # print(f"Serving file from: {file_path}")  # 打印文件路径
+    # with open(file_path, "r", encoding="utf-8") as file:
+    #     html_content = file.read()
+    # return HTMLResponse(content=html_content)
+    return HTMLResponse(content=open(file="static/index.html", encoding="utf-8").read())
     # return "index.html"
 
 # 获取数据库会话
@@ -100,9 +111,9 @@ def get_db():
 async def convert_code(request: CodeConversionRequest, db: Session = Depends(get_db), session_id: str = Cookie(None)):
     # 验证输入
     if not request.code.strip():
-        raise HTTPException(status_code=400, data="输入代码不能为空！")
+        raise HTTPException(status_code=400, detail="输入代码不能为空！")
     if request.language not in ["python", "javascript", "java", "csharp", "cpp"]:
-        raise HTTPException(status_code=400, data="不支持的目标语言！")
+        raise HTTPException(status_code=400, detail="不支持的目标语言！")
 
     try:
         # 使用 DeepSeek 进行代码转换
@@ -121,7 +132,8 @@ async def convert_code(request: CodeConversionRequest, db: Session = Depends(get
         # 返回转换结果
         return CodeConversionResponse(data=converted_code)
     except Exception as e:
-        raise HTTPException(status_code=500, data=f"代码转换失败：{str(e)}")
+        logger.error(e)
+        raise HTTPException(status_code=500, detail=f"代码转换失败：{str(e)}")
 
 # Pydantic 模型
 class CodeConversionDTO(BaseModel):
@@ -130,11 +142,12 @@ class CodeConversionDTO(BaseModel):
     target_language: str
     output_code: str
 
-    class Config:
-        from_attributes = True
+    model_config = {'from_attributes': True}
 
 @app.get("/api/records", response_model=list[CodeConversionDTO])
 async def get_records(db: Session = Depends(get_db)):
     # 查询所有数据
     data = db.query(CodeConversion).all()
-    return data
+    return [CodeConversionDTO.model_validate(item) for item in data]
+
+print(app.routes)
