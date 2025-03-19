@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  codetrans:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # 可选
+      # OPENAI_API_URL: "https://api.deepseek.com/v1"
+      # OPENAI_API_KEY: "your-openai-api-key"
+      # MODEL: "deepseek-reasoner"
+      # ENV_FILE_PATH: "your-env-path"
+    volumes:
+      - ./app:/app
+      - ./scripts:/app/scripts
