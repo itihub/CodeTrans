@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request, Response, Cookie, Depends
+from fastapi import FastAPI, HTTPException, Request, Response, Cookie, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -144,10 +144,31 @@ class CodeConversionDTO(BaseModel):
 
     model_config = {'from_attributes': True}
 
-@app.get("/api/records", response_model=list[CodeConversionDTO])
-async def get_records(db: Session = Depends(get_db)):
-    # 查询所有数据
-    data = db.query(CodeConversion).all()
-    return [CodeConversionDTO.model_validate(item) for item in data]
+# 字段描述
+FIELD_DESCRIPTIONS = {
+    "id": {"label": "ID", "format": "text"},
+    "input_code": {"label": "输入代码", "format": "markdown"},
+    "target_language": {"label": "目标语言", "format": "text"},
+    "output_code": {"label": "输出代码", "format": "markdown"},
+}
+
+@app.get("/api/records", response_model=dict)
+async def get_records(db: Session = Depends(get_db),
+                      session_id: str = Cookie(None),
+                      skip: int = Query(0, ge=0),
+                      limit: int = Query(10, ge=1, le=100)):
+    # 查询当前用户的数据并分页
+    records = (db.query(CodeConversion)
+            # .filter(CodeConversion.user_id == session_id)
+            .offset(skip).limit(limit).all())
+    
+    # 转换为 Pydantic 模型
+    records_data = [CodeConversionDTO.model_validate(item) for item in records]
+
+    # 返回数据和字段描述
+    return {
+        "field_descriptions": FIELD_DESCRIPTIONS,
+        "data": records_data,
+    }
 
 print(app.routes)

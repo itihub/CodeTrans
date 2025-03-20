@@ -69,11 +69,24 @@
         .output.error {
             color: red;
         }
+        .history-button {
+            background-color: #28a745;
+            color: white;
+        }
+        .history-button:hover {
+            background-color: #218838;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>代码转换工具</h1>
+
+        <div class="form-group">
+            <button id="historyButton" class="history-button">查看历史记录</button>
+        </div>
+        
+
         <div class="form-group">
             <label for="codeInput">输入代码</label>
             <textarea id="codeInput" placeholder="请输入代码"></textarea>
@@ -93,8 +106,11 @@
         </div>
         <div class="output" id="outputArea"></div>
     </div>
-
     <script>
+        document.getElementById('historyButton').addEventListener('click', () => {
+            window.location.href = '/static/history.html';
+        });
+
         document.getElementById('submitButton').addEventListener('click', async () => {
             const codeInput = document.getElementById('codeInput');
             const languageSelect = document.getElementById('languageSelect');

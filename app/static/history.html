@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>历史记录</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            width: 600px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        .clear {
+            clear: both;
+        }
+        .header-container {
+            position: sticky; /* 固定在容器顶部 */
+            top: 0;
+            background-color: #fff;
+            border-bottom: 1px solid #ddd;
+            z-index: 1000; /* 确保头部容器在最上层 */
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            height: 40px;
+        }
+        .back-button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 10px 20px;
+        }
+        .back-button:hover {
+            background-color: #218838;
+        }
+        .fixed-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin: 0 auto;
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        .content-container {
+            margin-top: 80px;
+            position: relative;
+            padding: 20px;
+        }
+        .records-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .records-table th, .records-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .records-table th {
+            background-color: #f4f4f9;
+            color: #333;
+            font-weight: bold;
+        }
+        .records-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .records-table tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        .pagination {
+            margin-top: 15px;
+            text-align: center;
+        }
+        .pagination button {
+            margin: 0 5px;
+            padding: 5px 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .pagination button:hover {
+            background-color: #0056b3;
+        }
+        .pagination button:disabled {
+            background-color: #ccc; /* 灰色背景 */
+            cursor: not-allowed; /* 禁用状态的鼠标样式 */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 固定的头部容器 -->
+        <div class="header-container">
+            <button id="backButton" class="back-button">返回</button>
+            <h1 class="fixed-title">历史记录</h1>
+        </div>
+
+        <div class="clear"></div>
+        <div class="content-container">
+            <div id="recordsContainer"></div>
+            <div class="pagination">
+                <button id="prevPage">上一页</button>
+                <button id="nextPage">下一页</button>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        // 返回按钮点击事件
+        document.getElementById('backButton').addEventListener('click', () => {
+            window.location.href = '/static/index.html';
+        });
+
+        let currentPage = 0;
+        const limit = 10;
+
+        async function fetchRecords(page) {
+            const response = await fetch(`/api/records?skip=${page * limit}&limit=${limit}`);
+            const result = await response.json();
+
+            const fieldDescriptions = result.field_descriptions; // 字段描述
+            const data = result.data; // 数据
+            
+            const recordsContainer = document.getElementById('recordsContainer');
+            recordsContainer.innerHTML = '';
+
+            // 渲染表格
+            const table = document.createElement('table');
+            table.className = 'records-table';
+
+            // 渲染表头
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+
+            Object.values(fieldDescriptions).forEach(desc => {
+                const th = document.createElement('th');
+                th.textContent = desc.label;
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            // 渲染表格内容
+            const tbody = document.createElement('tbody');
+            if (data.length === 0) {
+                const emptyRow = document.createElement('tr');
+                const emptyCell = document.createElement('td');
+                emptyCell.colSpan = Object.keys(fieldDescriptions).length;
+                emptyCell.textContent = '没有更多记录。';
+                emptyRow.appendChild(emptyCell);
+                tbody.appendChild(emptyRow);
+            } else {
+                data.forEach(record => {
+                    const row = document.createElement('tr');
+                    Object.keys(fieldDescriptions).forEach(key => {
+                        const td = document.createElement('td');
+                        const format = fieldDescriptions[key].format;
+
+                        if (format === 'markdown') {
+                            // 渲染 Markdown
+                            td.innerHTML = marked.parse(record[key]);
+                        } else {
+                            // 普通文本
+                            td.textContent = record[key];
+                        }
+                        row.appendChild(td);
+                    });
+                    tbody.appendChild(row);
+                });
+            }
+            table.appendChild(tbody);
+
+            recordsContainer.appendChild(table);
+
+            // 更新按钮状态
+            updatePaginationButtons(data.length);
+        }
+
+        function updatePaginationButtons(dataLength) {
+            const prevButton = document.getElementById('prevPage');
+            const nextButton = document.getElementById('nextPage');
+
+            // 如果当前页为 0，禁用“上一页”按钮
+            prevButton.disabled = currentPage === 0;
+
+            // 如果返回的数据长度小于 limit，禁用“下一页”按钮
+            nextButton.disabled = dataLength < limit;
+        }
+
+        document.getElementById('prevPage').addEventListener('click', () => {
+            if (currentPage > 0) {
+                currentPage--;
+                fetchRecords(currentPage);
+            }
+        });
+
+        document.getElementById('nextPage').addEventListener('click', () => {
+            currentPage++;
+            fetchRecords(currentPage);
+        });
+
+        // 初始加载第一页数据
+        fetchRecords(currentPage);
+    </script>
+</body>
+</html>
