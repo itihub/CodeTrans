@@ -64,8 +64,8 @@ python -m app.database
 ```
 
 #### 本地运行
-1.激活虚拟环境（如果尚未激活）。
-2.进入 `app` 目录，运行以下命令启动项目：
+1. 激活虚拟环境（如果尚未激活）。
+2. 进入 `app` 目录，运行以下命令启动项目：
 ```bash
 uvicorn main:app --reload
 ```
@@ -116,7 +116,7 @@ uvicorn main:app --reload
 │   └── schema.sql           # 数据库表结构
 ├── tests/                   # 测试代码
 │   └── deepseek_test.py     # DeepSeek 测试
-├── Dockerfile.dockerfile    # Docker 配置
+├── Dockerfile               # Docker 配置
 ├── Pipfile                  # Pipenv 配置
 ├── Pipfile.lock             # Pipenv 锁定文件
 ├── README.md                # 项目说明

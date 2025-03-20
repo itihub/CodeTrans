@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 复制项目代码到容器中
 COPY app /app/app
 COPY scripts /app/scripts
+COPY templates /app/templates
 
 # 复制环境文件到容器中
 COPY deepseek.env /app/
